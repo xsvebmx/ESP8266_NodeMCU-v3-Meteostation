@@ -25,21 +25,41 @@ void saveConfig() {
   EEPROM.commit();
 }
 
+void cleanALL() {
+
+   Serial.println("EEPROM повреждена или не инициализирована. Сброс настроек...");
+    
+    // Очистим весь EEPROM (по желанию)
+    for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0xFF);
+
+    // Установим дефолтные значения
+    config.mode = 'L'; // режим по умолчанию — локальный
+    strcpy(config.apiUrl, "http://localhost/data");
+
+    saveConfig();
+}
+
 void loadConfig() {
   EEPROM.get(0, config);
 
   bool invalid = false;
 
+  // Проверка допустимости режима
   if (config.mode != 'L' && config.mode != 'A') invalid = true;
 
+  // Проверка длины строки
   if (config.apiUrl[0] == '\0' || strlen(config.apiUrl) > 99) invalid = true;
+
+  // 🔧 СБРОС EEPROM ПРИ НЕВАЛИДНЫХ ДАННЫХ (можно отключить позже)
   if (invalid) {
     Serial.println("EEPROM повреждена или не инициализирована. Сброс настроек...");
     
+    // Очистим весь EEPROM (по желанию)
     for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0xFF);
 
+    // Установим дефолтные значения
     config.mode = 'L'; // режим по умолчанию — локальный
-    strcpy(config.apiUrl, "http://192.168.1.129:5000/data");
+    strcpy(config.apiUrl, "http://localhost/data";
 
     saveConfig();
   }
@@ -80,7 +100,7 @@ void handleSave() {
 void setupWiFi() {
   blinkLED();
   WiFi.mode(WIFI_STA);
-  WiFi.begin("wifi_example", "12345678");
+  WiFi.begin("wifi-example", "12345678");
   for (int i = 0; i < 20 && WiFi.status() != WL_CONNECTED; i++) {
     delay(500);
     Serial.print(".");
