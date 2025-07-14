@@ -34,7 +34,7 @@ void cleanALL() {
 
     // Установим дефолтные значения
     config.mode = 'L'; // режим по умолчанию — локальный
-    strcpy(config.apiUrl, "http://localhost/data");
+    strcpy(config.apiUrl, "http://192.168.1.129:5000/data");
 
     saveConfig();
 }
@@ -59,7 +59,7 @@ void loadConfig() {
 
     // Установим дефолтные значения
     config.mode = 'L'; // режим по умолчанию — локальный
-    strcpy(config.apiUrl, "http://localhost/data";
+    strcpy(config.apiUrl, "http://192.168.1.129:5000/data");
 
     saveConfig();
   }
