@@ -40,16 +40,16 @@
 
 ```
 ESP8266_NodeMCU-v3-Meteostation/
-├── server.py         # Flask сервер
-├── data.jsonl        # История замеров (JSON Lines)
-├── plots/            # Графики
+├── server.py           # Flask сервер
+├── data.jsonl          # История замеров (JSON Lines)
+├── plots/              # Графики
 │   ├── temperature.png
 │   ├── humidity.png
 │   ├── pressure_mmHg.png
 │   ├── pressure.png
 │   └── temperature.png
-├── main              # Код для прошивки ESP8266
-└── README.md         # Документация
+├── weather_station.ino # Код для прошивки ESP8266
+└── README.md           # Документация
 ```
 
 ---
