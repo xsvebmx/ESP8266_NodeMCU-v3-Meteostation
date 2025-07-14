@@ -9,6 +9,8 @@
 #define EEPROM_SIZE 512
 #define BME_ADDR 0x76
 
+#define RESET_PIN D7  // GPIO13
+
 Adafruit_BME280 bme;
 ESP8266WebServer server(80);
 WiFiClient wifiClient;
@@ -16,6 +18,10 @@ WiFiClient wifiClient;
 struct Config {
   char mode; // 'L' - local, 'A' - API
   char apiUrl[100];
+  char wifiSSID[100];
+  char wifiPSWD[100];
+  char apSSID[100];
+  char apPSWD[100];
 };
 
 Config config;
@@ -32,9 +38,15 @@ void cleanALL() {
     // Очистим весь EEPROM (по желанию)
     for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0xFF);
 
+    EEPROM.commit();
+
     // Установим дефолтные значения
     config.mode = 'L'; // режим по умолчанию — локальный
-    strcpy(config.apiUrl, "http://192.168.1.129:5000/data");
+    strcpy(config.apiUrl, "http://51.250.48.224:5000/523c71ea-6fa0-4b5f-8744-5f76f5b17557/data");
+    strcpy(config.wifiSSID, "your_SSID");
+    strcpy(config.wifiPSWD, "your_PASSWORD");
+    strcpy(config.apSSID, "NodeConfig");
+    strcpy(config.apPSWD, "12345678");
 
     saveConfig();
 }
@@ -49,6 +61,11 @@ void loadConfig() {
 
   // Проверка длины строки
   if (config.apiUrl[0] == '\0' || strlen(config.apiUrl) > 99) invalid = true;
+  if (config.wifiSSID[0] == '\0' || strlen(config.wifiSSID) > 99) invalid = true;
+  if (config.wifiPSWD[0] == '\0' || strlen(config.wifiPSWD) > 99) invalid = true;
+  if (config.apSSID[0] == '\0' || strlen(config.apSSID) > 99) invalid = true;
+  if (config.apPSWD[0] == '\0' || strlen(config.apPSWD) > 99) invalid = true;
+
 
   // 🔧 СБРОС EEPROM ПРИ НЕВАЛИДНЫХ ДАННЫХ (можно отключить позже)
   if (invalid) {
@@ -57,9 +74,15 @@ void loadConfig() {
     // Очистим весь EEPROM (по желанию)
     for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0xFF);
 
+    EEPROM.commit();
+
     // Установим дефолтные значения
     config.mode = 'L'; // режим по умолчанию — локальный
-    strcpy(config.apiUrl, "http://192.168.1.129:5000/data");
+    strcpy(config.apiUrl, "http://51.250.48.224:5000/523c71ea-6fa0-4b5f-8744-5f76f5b17557/data");
+    strcpy(config.wifiSSID, "your_SSID");
+    strcpy(config.wifiPSWD, "your_PASSWORD");
+    strcpy(config.apSSID, "NodeConfig");
+    strcpy(config.apPSWD, "12345678");
 
     saveConfig();
   }
@@ -68,22 +91,95 @@ void loadConfig() {
 void handleRoot() {
   blinkLED();
   String html = R"rawliteral(
-    <html><body style='color:white;background-color:gray;'>
-    <h2>settings</h2>
-    <form action="/save" method="post">
-      Mode:<br>
-      <input type="radio" name="mode" value="L" %LCHK%> local<br>
-      <input type="radio" name="mode" value="A" %ACHK%> API<br><br>
-      API URL:<br>
-      <input type="text" name="api" value="%API%"><br><br>
-      <input type="submit" value="save">
-    </form>
-    </body></html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Настройки</title>
+      <style>
+        body {
+          background-color: #89c4ffff;
+          color: #ecf0f1;
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+        }
+        h2 {
+          text-align: center;
+          color: #f39c12;
+        }
+        form {
+          max-width: 400px;
+          margin: 0 auto;
+          background: #484848ff;
+          padding: 20px;
+          border-radius: 10px;
+          box-shadow: 0 0 3px #000;
+        }
+        input[type="radio"] {
+          margin-right: 10px;
+        }
+        input[type="text"] {
+          width: 100%;
+          padding: 8px;
+          margin-top: 5px;
+          margin-bottom: 15px;
+          border: none;
+          border-radius: 5px;
+        }
+        input[type="submit"] {
+          background-color: #27ae60;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          text-transform: uppercase;
+          border-radius: 5px;
+          cursor: pointer;
+          width: 100%;
+        }
+        input[type="submit"]:hover {
+          background-color: #2ecc71;
+        }
+        label {
+          display: block;
+          margin-top: 10px;
+          margin-bottom: 5px;
+        }
+      </style>
+    </head>
+    <body>
+      <h2>Настройки</h2>
+      <form action="/save" method="post">
+        <label>Режим:</label>
+        <input type="radio" name="mode" value="L" %LCHK%> Локальный
+        <input type="radio" name="mode" value="A" %ACHK%> API
+
+        <label>WIFI SSID:</label>
+        <input type="text" name="wifiSSID" value="%WIFI_SSID%">
+        <label>WIFI Password:</label>
+        <input type="text" name="wifiPSWD" value="%WIFI_PSWD%">
+
+        <label>AP SSID:</label>
+        <input type="text" name="apSSID" value="%AP_SSID%">
+        <label>AP Password:</label>
+        <input type="text" name="apPSWD" value="%AP_PSWD%">
+
+        <label>API URL:</label>
+        <input type="text" name="api" value="%API%">
+
+        <input type="submit" value="Сохранить">
+      </form>
+    </body>
+  </html>
   )rawliteral";
+
 
   html.replace("%LCHK%", config.mode == 'L' ? "checked" : "");
   html.replace("%ACHK%", config.mode == 'A' ? "checked" : "");
   html.replace("%API%", config.apiUrl);
+  html.replace("%WIFI_SSID%", config.wifiSSID);
+  html.replace("%WIFI_PSWD%", config.wifiPSWD);
+  html.replace("%AP_SSID%", config.apSSID);
+  html.replace("%AP_PSWD%", config.apPSWD);
 
   server.send(200, "text/html", html);
 }
@@ -91,19 +187,38 @@ void handleRoot() {
 void handleSave() {
   if (server.hasArg("mode")) config.mode = server.arg("mode")[0];
   if (server.hasArg("api")) server.arg("api").toCharArray(config.apiUrl, 100);
+  if (server.hasArg("wifiSSID")) server.arg("wifiSSID").toCharArray(config.wifiSSID, 100);
+  if (server.hasArg("wifiPSWD")) server.arg("wifiPSWD").toCharArray(config.wifiPSWD, 100);
+  if (server.hasArg("apSSID")) server.arg("apSSID").toCharArray(config.apSSID, 100);
+  if (server.hasArg("apPSWD")) server.arg("apPSWD").toCharArray(config.apPSWD, 100);
+  Serial.println("Сохранение настроек...");
+  Serial.printf("Mode: %c\n", config.mode);
+  Serial.printf("API URL: %s\n", config.apiUrl);
+  Serial.printf("WIFI SSID: %s\n", config.wifiSSID);
+  Serial.printf("WIFI Password: %s\n", config.wifiPSWD);
+  Serial.printf("AP SSID: %s\n", config.apSSID);
+  Serial.printf("AP Password: %s\n", config.apPSWD);
   saveConfig();
-  server.send(200, "text/html", "<html><body>saved. rebooting.. <br> go to /data </body></html>");
+  server.send(200, "text/html", "<html><body>saved. rebooting.. <br> yappi</body></html>");
+  Serial.println("Настройки сохранены. Перезагрузка...");
   delay(1000);
+
   ESP.restart();
 }
 
 void setupWiFi() {
   blinkLED();
   WiFi.mode(WIFI_STA);
-  WiFi.begin("wifi-example", "12345678");
+  WiFi.begin(config.wifiSSID, config.wifiPSWD);
+  WiFi.setAutoReconnect(true);
+  Serial.println("Connecting to WiFi...");
+  Serial.print("SSID: ");
+  Serial.println(config.wifiSSID);
+  Serial.print("Password: ");
+  Serial.println(config.wifiPSWD);
   for (int i = 0; i < 20 && WiFi.status() != WL_CONNECTED; i++) {
     delay(500);
-    Serial.print(".");
+    Serial.print(i);
     blinkLED();
   }
 }
@@ -111,8 +226,16 @@ void setupWiFi() {
 void setupAP() {
   blinkLED();
   WiFi.mode(WIFI_AP);
-  WiFi.softAP("NodeConfig", "12345678");
-  Serial.println("AP Mode: NodeConfig (12345678)");
+  WiFi.softAP(config.apSSID, config.apPSWD);
+  Serial.print("AP Mode: ");
+  Serial.println(config.apSSID);
+  Serial.print("Password: ");
+  Serial.println(config.apPSWD);
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.softAPIP());
+  Serial.println("Web server started.");
+  Serial.println("Connect to the AP and open http://192.168.4.1 in your browser to see the data.");
+  Serial.println("МЯУ ЕПТА");
 }
 
 void sendToApi(float t, float h, float p, float mmHg, float altitude) {
@@ -126,6 +249,8 @@ void sendToApi(float t, float h, float p, float mmHg, float altitude) {
   payload += "\"altitude\":" + String(altitude, 2);
   payload += "}";
   http.begin(wifiClient, config.apiUrl);
+  Serial.println("Sending data to API: " + config.apiUrl);
+  Serial.println("Payload: " + payload);
   http.addHeader("Content-Type", "application/json");
   int httpResponseCode = http.POST(payload);
   http.end();
@@ -138,7 +263,7 @@ void handleDataPage() {
   float p = bme.readPressure() / 100.0;
   float mmHg = p * 0.75006;
   float altitude = bme.readAltitude(1013);
-
+  
   String page = "<html><body>";
   page += "temperature: " + String(t, 2) + " C<br>";
   page += "humidity: " + String(h, 2) + " %<br>";
@@ -153,8 +278,22 @@ void handleDataPage() {
 void setup() {
   Serial.begin(115200);
   EEPROM.begin(EEPROM_SIZE);
-  loadConfig();
+  // loadConfig();
+  // cleanALL();
   pinMode(LED_BUILTIN, OUTPUT);
+
+  pinMode(RESET_PIN, INPUT_PULLUP);  // подтяжка к HIGH
+
+
+  delay(200); // немного подождать
+
+  if (digitalRead(RESET_PIN) == LOW) {
+    Serial.println("Кнопка сброса зажата. Выполняется сброс...");
+    cleanALL();
+  } else {
+    Serial.println("Обычная загрузка...");
+    loadConfig();
+  }
 
   if (!bme.begin(BME_ADDR)) {
     Serial.println("BME280 not found!");
