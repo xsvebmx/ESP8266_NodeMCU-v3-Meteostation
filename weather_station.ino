@@ -42,7 +42,7 @@ void cleanALL() {
 
     // Установим дефолтные значения
     config.mode = 'L'; // режим по умолчанию — локальный
-    strcpy(config.apiUrl, "http://51.250.48.224:5000/523c71ea-6fa0-4b5f-8744-5f76f5b17557/data");
+    strcpy(config.apiUrl, "http://localhost:5000/data");
     strcpy(config.wifiSSID, "your_SSID");
     strcpy(config.wifiPSWD, "your_PASSWORD");
     strcpy(config.apSSID, "NodeConfig");
@@ -78,7 +78,7 @@ void loadConfig() {
 
     // Установим дефолтные значения
     config.mode = 'L'; // режим по умолчанию — локальный
-    strcpy(config.apiUrl, "http://51.250.48.224:5000/523c71ea-6fa0-4b5f-8744-5f76f5b17557/data");
+    strcpy(config.apiUrl, "http://localhost:5000/data");
     strcpy(config.wifiSSID, "your_SSID");
     strcpy(config.wifiPSWD, "your_PASSWORD");
     strcpy(config.apSSID, "NodeConfig");
