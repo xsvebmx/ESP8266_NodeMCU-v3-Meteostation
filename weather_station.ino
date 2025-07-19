@@ -9,7 +9,8 @@
 #define EEPROM_SIZE 512
 #define BME_ADDR 0x76
 
-#define RESET_PIN D7  // GPIO13
+#define RESET_PIN D7          // GPIO13
+#define CHANGE_RESULTS_PIN D6 // Пин для кнопки сброса данных
 
 Adafruit_BME280 bme;
 ESP8266WebServer server(80);
@@ -32,59 +33,30 @@ void saveConfig() {
 }
 
 void cleanALL() {
-
-   Serial.println("EEPROM повреждена или не инициализирована. Сброс настроек...");
-    
-    // Очистим весь EEPROM (по желанию)
-    for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0xFF);
-
-    EEPROM.commit();
-
-    // Установим дефолтные значения
-    config.mode = 'L'; // режим по умолчанию — локальный
-    strcpy(config.apiUrl, "http://localhost:5000/data");
-    strcpy(config.wifiSSID, "your_SSID");
-    strcpy(config.wifiPSWD, "your_PASSWORD");
-    strcpy(config.apSSID, "NodeConfig");
-    strcpy(config.apPSWD, "12345678");
-
-    saveConfig();
+  Serial.println("EEPROM повреждена или не инициализирована. Сброс настроек...");
+  for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0xFF);
+  EEPROM.commit();
+  config.mode = 'L';
+  strcpy(config.apiUrl, "http://192.168.0.129:5000/data");
+  strcpy(config.wifiSSID, "your_SSID");
+  strcpy(config.wifiPSWD, "your_PASSWORD");
+  strcpy(config.apSSID, "Meteostation");
+  strcpy(config.apPSWD, "12345678");
+  saveConfig();
 }
 
 void loadConfig() {
   EEPROM.get(0, config);
-
   bool invalid = false;
-
-  // Проверка допустимости режима
   if (config.mode != 'L' && config.mode != 'A') invalid = true;
-
-  // Проверка длины строки
   if (config.apiUrl[0] == '\0' || strlen(config.apiUrl) > 99) invalid = true;
   if (config.wifiSSID[0] == '\0' || strlen(config.wifiSSID) > 99) invalid = true;
   if (config.wifiPSWD[0] == '\0' || strlen(config.wifiPSWD) > 99) invalid = true;
   if (config.apSSID[0] == '\0' || strlen(config.apSSID) > 99) invalid = true;
   if (config.apPSWD[0] == '\0' || strlen(config.apPSWD) > 99) invalid = true;
-
-
-  // 🔧 СБРОС EEPROM ПРИ НЕВАЛИДНЫХ ДАННЫХ (можно отключить позже)
   if (invalid) {
     Serial.println("EEPROM повреждена или не инициализирована. Сброс настроек...");
-    
-    // Очистим весь EEPROM (по желанию)
-    for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0xFF);
-
-    EEPROM.commit();
-
-    // Установим дефолтные значения
-    config.mode = 'L'; // режим по умолчанию — локальный
-    strcpy(config.apiUrl, "http://localhost:5000/data");
-    strcpy(config.wifiSSID, "your_SSID");
-    strcpy(config.wifiPSWD, "your_PASSWORD");
-    strcpy(config.apSSID, "NodeConfig");
-    strcpy(config.apPSWD, "12345678");
-
-    saveConfig();
+    cleanALL();
   }
 }
 
@@ -97,7 +69,7 @@ void handleRoot() {
       <title>Настройки</title>
       <style>
         body {
-          background-color: #89c4ffff;
+          background-color: #0A2227;
           color: #ecf0f1;
           font-family: Arial, sans-serif;
           margin: 0;
@@ -105,12 +77,12 @@ void handleRoot() {
         }
         h2 {
           text-align: center;
-          color: #f39c12;
+          color: #FFFFFF;
         }
         form {
           max-width: 400px;
           margin: 0 auto;
-          background: #484848ff;
+          background: #0C0E12;
           padding: 20px;
           border-radius: 10px;
           box-shadow: 0 0 3px #000;
@@ -127,7 +99,7 @@ void handleRoot() {
           border-radius: 5px;
         }
         input[type="submit"] {
-          background-color: #27ae60;
+          background-color: #064A47;
           color: white;
           border: none;
           padding: 10px 20px;
@@ -137,7 +109,7 @@ void handleRoot() {
           width: 100%;
         }
         input[type="submit"]:hover {
-          background-color: #2ecc71;
+          background-color: #007864;
         }
         label {
           display: block;
@@ -172,7 +144,6 @@ void handleRoot() {
   </html>
   )rawliteral";
 
-
   html.replace("%LCHK%", config.mode == 'L' ? "checked" : "");
   html.replace("%ACHK%", config.mode == 'A' ? "checked" : "");
   html.replace("%API%", config.apiUrl);
@@ -187,7 +158,7 @@ void handleRoot() {
 void handleSave() {
   if (server.hasArg("mode")) config.mode = server.arg("mode")[0];
   if (server.hasArg("api")) server.arg("api").toCharArray(config.apiUrl, 100);
-  if (server.hasArg("wifiSSID")) server.arg("wifiSSID").toCharArray(config.wifiSSID, 100);
+   if (server.hasArg("wifiSSID")) server.arg("wifiSSID").toCharArray(config.wifiSSID, 100);
   if (server.hasArg("wifiPSWD")) server.arg("wifiPSWD").toCharArray(config.wifiPSWD, 100);
   if (server.hasArg("apSSID")) server.arg("apSSID").toCharArray(config.apSSID, 100);
   if (server.hasArg("apPSWD")) server.arg("apPSWD").toCharArray(config.apPSWD, 100);
@@ -202,7 +173,6 @@ void handleSave() {
   server.send(200, "text/html", "<html><body>saved. rebooting.. <br> yappi</body></html>");
   Serial.println("Настройки сохранены. Перезагрузка...");
   delay(1000);
-
   ESP.restart();
 }
 
@@ -249,8 +219,6 @@ void sendToApi(float t, float h, float p, float mmHg, float altitude) {
   payload += "\"altitude\":" + String(altitude, 2);
   payload += "}";
   http.begin(wifiClient, config.apiUrl);
-  Serial.println("Sending data to API: " + config.apiUrl);
-  Serial.println("Payload: " + payload);
   http.addHeader("Content-Type", "application/json");
   int httpResponseCode = http.POST(payload);
   http.end();
@@ -275,17 +243,30 @@ void handleDataPage() {
   server.send(200, "text/html", page);
 }
 
+void sendChangeResultsRequest() {
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        String url = "http://192.168.0.129:5000/change-results";
+        http.begin(wifiClient, url);
+        int httpResponseCode = http.GET();
+        if (httpResponseCode == 200) {
+            String response = http.getString();
+            Serial.println("Сервер ответил: " + response);
+        } else {
+            Serial.println("Ошибка. Код: " + String(httpResponseCode));
+        }
+        http.end();
+    }
+}
+
 void setup() {
   Serial.begin(115200);
   EEPROM.begin(EEPROM_SIZE);
-  // loadConfig();
-  // cleanALL();
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(RESET_PIN, INPUT_PULLUP);
+  pinMode(CHANGE_RESULTS_PIN, INPUT_PULLUP); // Настройка пина D6 с подтяжкой к HIGH
 
-  pinMode(RESET_PIN, INPUT_PULLUP);  // подтяжка к HIGH
-
-
-  delay(200); // немного подождать
+  delay(200);
 
   if (digitalRead(RESET_PIN) == LOW) {
     Serial.println("Кнопка сброса зажата. Выполняется сброс...");
@@ -326,9 +307,19 @@ void loop() {
       float h = bme.readHumidity();
       float p = bme.readPressure() / 100.0;
       float mmHg = p * 0.75006;
-      float altitude = bme.readAltitude(1013);
+      float altitude = bme.readAltitude(1006.51);
       sendToApi(t, h, p, mmHg, altitude);
     }
-    delay(10000);
+    delay(3000);
   }
+
+  // Проверка состояния кнопки сброса данных
+  static bool lastButtonState = HIGH;
+  bool currentButtonState = digitalRead(CHANGE_RESULTS_PIN);
+  if (lastButtonState == HIGH && currentButtonState == LOW) {
+    Serial.println("Кнопка сброса данных зажата. Отправка запроса...");
+    sendChangeResultsRequest();
+    blinkLED(); // Индикация действия
+  }
+  lastButtonState = currentButtonState;
 }
