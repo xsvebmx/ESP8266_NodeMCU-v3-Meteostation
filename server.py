@@ -11,16 +11,13 @@ DATA_FILE = "data.jsonl"
 PLOTS_DIR = "plots"
 VALID_PARAMS = ["temperature", "humidity", "pressure", "pressure_mmHg", "altitude"]
 
-# создать папку для графиков
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 def save_data_and_update_plots(data):
-    # Добавить метку времени
     data["timestamp"] = datetime.now().isoformat()
     with open(DATA_FILE, "a") as f:
         f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
-    # Перерисовать графики
     df = pd.read_json(DATA_FILE, lines=True)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df.sort_values("timestamp", inplace=True)
@@ -38,7 +35,6 @@ def save_data_and_update_plots(data):
         plt.savefig(f"{PLOTS_DIR}/{param}.png")
         plt.close()
 
-# основной маршрут POST
 @app.route("/data", methods=["POST"])
 def receive_data():
     data = request.get_json()
@@ -48,7 +44,6 @@ def receive_data():
     print("Получено:", data)
     return jsonify({"status": "ok"})
 
-# получение последних данных (GET)
 @app.route("/data", methods=["GET"])
 def get_latest_data():
     if not os.path.exists(DATA_FILE):
